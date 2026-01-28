@@ -31,8 +31,8 @@ This guide explains how to deploy your Django application to **Render**, a popul
 2. **Configure Service**:
    - **Name**: `groundwater-monitor` (or any unique name)
    - **Runtime**: `Python 3`
-   - **Build Command**: `./build.sh` (This installs dependencies, migrates DB, and seeds data)
-   - **Start Command**: `gunicorn groundwater.wsgi:application`
+   - **Build Command**: `./build.sh`
+   - **Start Command**: `./start.sh` (Runs migrations, seeds data, and starts server)
    - **Instance Type**: `Free`
 
 3. **Environment Variables**:
