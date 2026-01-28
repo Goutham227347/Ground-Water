@@ -1,0 +1,11 @@
+{
+  "name": "Groundwater DWLR Monitor",
+  "short_name": "GW Monitor",
+  "description": "Real-time groundwater resource evaluation using DWLR data. Mobile-friendly.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": []
+}

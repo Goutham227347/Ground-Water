@@ -1,0 +1,256 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Real-time groundwater resource evaluation using DWLR data. 5,260 stations across India.">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="{% static 'monitoring/manifest.json' %}">
+    <title>Real-time Groundwater Resource Evaluation - DWLR Data</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.css">
+    <link rel="stylesheet" href="{% static 'monitoring/css/style.css' %}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-tint"></i>
+                <span>Groundwater Monitor</span>
+            </div>
+            <div class="nav-links">
+                <a href="#dashboard" class="nav-link active">Dashboard</a>
+                <a href="#stations" class="nav-link">Stations</a>
+                <a href="#analytics" class="nav-link">Analytics</a>
+                <a href="#alerts" class="nav-link">Alerts</a>
+                <a href="/api/info/" class="nav-link" target="_blank" rel="noopener">API</a>
+            </div>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Dashboard Section -->
+    <section id="dashboard" class="section active">
+        <div class="container">
+            <h1 class="section-title">Real-time Groundwater Monitoring</h1>
+            <p class="section-subtitle">5,260 DWLR Stations Across India</p>
+
+            <!-- Statistics Cards -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalStations">-</div>
+                        <div class="stat-label">Total Stations</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon active"><i class="fas fa-satellite-dish"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="activeStations">-</div>
+                        <div class="stat-label">Active Stations</div>
+                    </div>
+                </div>
+                <div class="stat-card alert-critical">
+                    <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="criticalStations">-</div>
+                        <div class="stat-label">Critical Alerts</div>
+                    </div>
+                </div>
+                <div class="stat-card alert-warning">
+                    <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="warningStations">-</div>
+                        <div class="stat-label">Warnings</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Section -->
+            <div class="map-container">
+                <div class="map-header">
+                    <h2>Station Locations</h2>
+                    <div class="map-controls">
+                        <select id="stateFilter" class="filter-select">
+                            <option value="">All States</option>
+                        </select>
+                        <select id="alertFilter" class="filter-select">
+                            <option value="">All Alerts</option>
+                            <option value="critical">Critical</option>
+                            <option value="warning">Warning</option>
+                            <option value="normal">Normal</option>
+                            <option value="good">Good</option>
+                        </select>
+                        <button class="btn btn-primary" id="refreshData">
+                            <i class="fas fa-sync-alt"></i> Refresh Data
+                        </button>
+                    </div>
+                </div>
+                <div id="map" class="map"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stations Section -->
+    <section id="stations" class="section">
+        <div class="container">
+            <h2 class="section-title">DWLR Stations</h2>
+            
+            <div class="search-bar">
+                <input type="text" id="stationSearch" placeholder="Search by station code, name, state, or district..." class="search-input">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+
+            <div class="stations-table-container">
+                <table class="stations-table">
+                    <thead>
+                        <tr>
+                            <th>Station Code</th>
+                            <th>Name</th>
+                            <th>State</th>
+                            <th>District</th>
+                            <th>Latest Depth (m)</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stationsTableBody">
+                        <tr>
+                            <td colspan="7" class="loading">Loading stations...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Station Detail Modal -->
+    <div id="stationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalStationName">Station Details</h2>
+                <button class="modal-close" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="station-info-grid">
+                    <div class="info-item">
+                        <label>Station Code:</label>
+                        <span id="modalStationCode">-</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Location:</label>
+                        <span id="modalLocation">-</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Latest Water Level:</label>
+                        <span id="modalWaterLevel">-</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Alert Status:</label>
+                        <span id="modalAlertStatus" class="alert-badge">-</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Storage:</label>
+                        <span id="modalStorage">-</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Trend:</label>
+                        <span id="modalTrend">-</span>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Water Level Trend (Last 12 Months)</h3>
+                    <canvas id="waterLevelChart"></canvas>
+                </div>
+
+                <div class="resource-metrics">
+                    <h3>Resource Metrics</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Estimated Recharge</div>
+                            <div class="metric-value" id="metricRecharge">-</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Recharge Rate</div>
+                            <div class="metric-value" id="metricRechargeRate">-</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Current Storage</div>
+                            <div class="metric-value" id="metricStorage">-</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Storage Percentage</div>
+                            <div class="metric-value" id="metricStoragePercent">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="syncStationData">
+                    <i class="fas fa-sync-alt"></i> Sync Real-time Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Section -->
+    <section id="analytics" class="section">
+        <div class="container">
+            <h2 class="section-title">Analytics & Trends</h2>
+            
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <h3>Alert Distribution</h3>
+                    <canvas id="alertChart"></canvas>
+                </div>
+                <div class="analytics-card">
+                    <h3>State-wise Coverage</h3>
+                    <canvas id="stateChart"></canvas>
+                </div>
+            </div>
+
+            <div class="analytics-card full-width">
+                <h3>Decision Support & Insights</h3>
+                <p class="section-desc">Recommendations for researchers, planners, and policymakers based on real-time resource evaluation.</p>
+                <div id="insightsContainer" class="insights-list">
+                    <div class="loading">Loading insights...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Alerts Section -->
+    <section id="alerts" class="section">
+        <div class="container">
+            <h2 class="section-title">Critical Alerts & Warnings</h2>
+            
+            <div class="alerts-container" id="alertsContainer">
+                <div class="loading">Loading alerts...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading data...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="{% static 'monitoring/js/app.js' %}?v=2"></script>
+</body>
+</html>
+
