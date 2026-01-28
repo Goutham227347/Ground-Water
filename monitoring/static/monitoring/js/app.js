@@ -106,10 +106,15 @@ function initializeMap() {
 async function loadDashboardData() {
     showLoading();
     try {
-        const [statsResponse, stationsResponse] = await Promise.all([
-            fetch(`${API_BASE_URL}/stations/statistics/`),
-            fetch(`${API_BASE_URL}/stations/?limit=1000`)
-        ]);
+        const statsResponse = await fetch(`${API_BASE_URL}/stations/statistics/`);
+        if (!statsResponse.ok) {
+            throw new Error(`Statistics API error: ${statsResponse.status}`);
+        }
+
+        const stationsResponse = await fetch(`${API_BASE_URL}/stations/?limit=1000`);
+        if (!stationsResponse.ok) {
+            throw new Error(`Stations API error: ${stationsResponse.status}`);
+        }
 
         const stats = await statsResponse.json();
         const stationsData = await stationsResponse.json();
@@ -132,7 +137,8 @@ async function loadDashboardData() {
         }
     } catch (error) {
         console.error('Error loading dashboard data:', error);
-        showError('Failed to load dashboard data');
+        // Show clearer error to user
+        showError(`Failed to load data: ${error.message}. Check console for details.`);
     } finally {
         hideLoading();
     }
