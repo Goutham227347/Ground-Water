@@ -108,12 +108,22 @@ async function loadDashboardData() {
     try {
         const statsResponse = await fetch(`${API_BASE_URL}/stations/statistics/`);
         if (!statsResponse.ok) {
-            throw new Error(`Statistics API error: ${statsResponse.status}`);
+            let errMsg = statsResponse.statusText;
+            try {
+                const errData = await statsResponse.json();
+                if (errData.error) errMsg = errData.error;
+            } catch (e) { }
+            throw new Error(`Statistics API: ${errMsg} (${statsResponse.status})`);
         }
 
         const stationsResponse = await fetch(`${API_BASE_URL}/stations/?limit=1000`);
         if (!stationsResponse.ok) {
-            throw new Error(`Stations API error: ${stationsResponse.status}`);
+            let errMsg = stationsResponse.statusText;
+            try {
+                const errData = await stationsResponse.json();
+                if (errData.error) errMsg = errData.error;
+            } catch (e) { }
+            throw new Error(`Stations API: ${errMsg} (${stationsResponse.status})`);
         }
 
         const stats = await statsResponse.json();
