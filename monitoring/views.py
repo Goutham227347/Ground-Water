@@ -241,26 +241,34 @@ class DWLRStationViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Get overall statistics across all stations
         """
-        total_stations = DWLRStation.objects.count()
-        active_stations = DWLRStation.objects.filter(is_active=True).count()
-        
-        # Alert status distribution
-        alert_stats = {}
-        for status_code in ['critical', 'warning', 'normal', 'good']:
-            count = GroundwaterResource.objects.filter(
-                alert_status=status_code
-            ).values('station').distinct().count()
-            alert_stats[status_code] = count
-        
-        # States coverage
-        states_count = DWLRStation.objects.values('state').distinct().count()
-        
-        return Response({
-            'total_stations': total_stations,
-            'active_stations': active_stations,
-            'states_covered': states_count,
-            'alert_distribution': alert_stats,
-        })
+        try:
+            total_stations = DWLRStation.objects.count()
+            active_stations = DWLRStation.objects.filter(is_active=True).count()
+            
+            # Alert status distribution
+            alert_stats = {}
+            for status_code in ['critical', 'warning', 'normal', 'good']:
+                count = GroundwaterResource.objects.filter(
+                    alert_status=status_code
+                ).values('station').distinct().count()
+                alert_stats[status_code] = count
+            
+            # States coverage
+            states_count = DWLRStation.objects.values('state').distinct().count()
+            
+            return Response({
+                'total_stations': total_stations,
+                'active_stations': active_stations,
+                'states_covered': states_count,
+                'alert_distribution': alert_stats,
+            })
+        except Exception as e:
+            logger.error(f"Error generating statistics: {str(e)}")
+            # Return the error message so the frontend can display it
+            return Response(
+                {'error': f"Server Error: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=False, methods=['get'])
     def insights(self, request):
