@@ -32,9 +32,17 @@ try:
         # If we got here, we are the responsible worker
         print("Attempting to apply migrations from WSGI...")
         call_command('migrate')
-        # Also ensure sample data is seeded if needed, or stick to just migrations to be safe
-        # call_command('seed_sample_data') 
         print("Migrations applied successfully.")
+
+        # Check if we need to seed data (only if DB is empty)
+        try:
+            from monitoring.models import DWLRStation
+            if not DWLRStation.objects.exists():
+                print("Database appears empty. Seeding sample data...")
+                call_command('seed_sample_data')
+                print("Sample data seeded successfully.")
+        except Exception as seed_error:
+            print(f"Warning: Failed to seed data: {seed_error}")
         
     except FileExistsError:
         # Migrations already handled by another worker
